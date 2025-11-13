@@ -31,7 +31,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
 }
 expoAutolinking.useExpoModules()
 
-rootProject.name = 'orcamentoservico'
+rootProject.name = 'orcamento_servico'
 
 expoAutolinking.useExpoVersionCatalog()
 

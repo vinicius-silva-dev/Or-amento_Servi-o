@@ -2,6 +2,12 @@
   "expo": {
     "name": "orcamento_servico",
     "slug": "orcamento_servico",
-    "version": "1.0.0"
+    "version": "1.0.0",
+    "plugins": [
+      "expo-font"
+    ],
+    "android": {
+      "package": "com.anonymous.orcamento_servico"
+    }
   }
 }
