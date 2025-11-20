@@ -38,10 +38,21 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
   },
+  headerFiltro: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 5,
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    marginBottom: 34,
+  },
   input: {
     fontFamily: "Lato_400Bold",
     fontSize: 18,
     color: "#333",
+    backgroundColor: "#FAFAFA",
     borderRadius: 50,
     borderWidth: 1,
     borderColor: "#E6E5E5",
@@ -95,5 +106,10 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     gap: 12
-  }
+  },
+   empaty: {
+    fontSize: 14,
+    color: "#808080",
+    textAlign: "center"
+  },
 })

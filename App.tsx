@@ -9,15 +9,6 @@ import 'react-native-reanimated';
 export default function App() {
 
   return(
-    <GestureHandlerRootView style={{flex: 1}}>
       <Routes/>
-    </GestureHandlerRootView>
   ) 
 }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     backgroundColor: '#fff',
- 
-//   },
-// })
