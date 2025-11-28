@@ -1,14 +1,94 @@
 import { StackRoutesProps } from "@/routes/StackRoutes";
 import { MaterialIcons } from "@expo/vector-icons";
-import { View, Text, ScrollView, TextInput } from "react-native";
+import { View, Text, ScrollView, TextInput, Alert } from "react-native";
 import { useFonts, Lato_400Regular, Lato_700Bold } from "@expo-google-fonts/lato";
 import { styles } from "./styles";
 import { Status } from "@/components/Status";
 import { ServicosInculos } from "@/components/ServicoIncluso";
 import { Button } from "@/components/Button";
 import { ButtonIcon } from "@/components/ButtonIcon";
+import { Orcamento, orcamentoStorage } from "@/storage/orcamentoStorage";
+
+import { useEffect, useState } from "react";
 
 export function DetalheOrcamento({route, navigation }: StackRoutesProps<"detalheorcamento">) {
+  const [orcamento, setOrcamento] = useState<Orcamento>()
+  
+
+  async function getOrcamentoById(id: string) {
+    try {
+      const response = await orcamentoStorage.getById(id)
+ 
+      setOrcamento(response[0])
+    } catch (error) {
+      console.log(error)
+      Alert.alert("Erro", "Não foi possível exibir os detalhes do orçamento.")
+    }
+  }
+
+  async function duplicarOrcamento() {
+    try {
+      if(!orcamento) {
+        throw new Error("Deu ruim")
+      }
+      const today = new Date();
+      const formatter = new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+      const formattedDate = formatter.format(today);
+      const newOrcamento = {
+        id: randomId(),
+        titulo: orcamento?.titulo,
+        cliente: orcamento?.cliente,
+        status: orcamento?.status,
+        servicos: orcamento?.servicos,
+        desconto: orcamento?.desconto,
+        valorDesconto: orcamento?.valorDesconto,
+        valorTotal: orcamento?.valorTotal,
+        createdAt: formattedDate,
+        updatedAt: formattedDate
+      }
+
+      await orcamentoStorage.add(newOrcamento)
+
+
+      Alert.alert("Orcamento", `Orcamento adicionado com sucesso`)
+      navigation.navigate("home")
+    } catch (error) {
+      console.log(error)
+      Alert.alert("Erro", "Não foi possível duplicar o orçamento.")
+    }
+    
+  }
+
+  async function deleteOrcamento() {
+    try {
+      Alert.alert("Delete", "Deseja excluir este orçamento ?", [
+        {
+          text: "Cancelar",
+          style: "cancel"
+        },
+        {
+          text: "Sim",
+          onPress: async () => {
+            await orcamentoStorage.remove(route.params.id)
+            navigation.navigate("home")
+          }
+        }
+      ])
+      
+    } catch (error) {
+      console.log(error)
+      Alert.alert("Erro", "Não foi possível deletar o orçamento.")
+    }
+  }
+  useEffect(() => {
+    getOrcamentoById(route.params.id)
+    
+  },[])
+
   const [fontsLoaded] = useFonts({
       Lato_400Regular,
       Lato_700Bold,
@@ -17,6 +97,9 @@ export function DetalheOrcamento({route, navigation }: StackRoutesProps<"detalhe
   if (!fontsLoaded) {
     return <Text>Deu ruim</Text>;
   }
+  const randomId = function (length = 12) {
+   return Math.random().toString(36).substring(2, length + 2);
+  };
   return (
     <View
       style={{
@@ -32,9 +115,9 @@ export function DetalheOrcamento({route, navigation }: StackRoutesProps<"detalhe
             size={32}
             onPress={() => navigation.navigate("home")} 
           />
-          <Text style={styles.title}>Orçamento{route.params.id}</Text>
+          <Text style={styles.title}>Orçamento</Text>
         </View>
-        <Status status="Enviado"/>
+        <Status status={ orcamento ? orcamento?.status : ''}/>
       </View>
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -43,22 +126,22 @@ export function DetalheOrcamento({route, navigation }: StackRoutesProps<"detalhe
         <View style={[styles.card, {backgroundColor: "#FAFAFA"}]}>
           <View style={styles.cardHeader}>
             <MaterialIcons name="storefront" size={30} color={"#6A46EB"} />
-            <Text style={styles.titleHeader}>Desenvolvimento de aplicativo de loja online</Text>
+            <Text style={styles.titleHeader}>{orcamento?.titulo}</Text>
           </View>
           <View style={{padding: 20}}>
             <View style={{marginBottom: 12}}>
               <Text style={{fontSize: 12, color: "#676767", paddingBottom: 5}}>Cliente</Text>
-              <Text style={{fontSize: 16, fontFamily: "Lato_700Bold"}}>{`Soluções Tecnológicas Beta`}</Text>
+              <Text style={{fontSize: 16, fontFamily: "Lato_700Bold"}}>{orcamento?.cliente}</Text>
             </View>
 
             <View style={{flexDirection: "row", justifyContent: "space-between"}}>
               <View >
                 <Text style={{fontSize: 12, color: "#676767", paddingBottom: 5}}>Criado em</Text>
-                <Text style={{fontSize: 16, fontFamily: "Lato_700Bold"}}>{`22/08/2025`}</Text>
+                <Text style={{fontSize: 16, fontFamily: "Lato_700Bold"}}>{orcamento?.createdAt}</Text>
               </View>
               <View style={{justifyContent: "flex-start", width: "50%"}}>
                 <Text style={{fontSize: 12, color: "#676767", paddingBottom: 5}}>Atualizado em</Text>
-                <Text style={{fontSize: 16, fontFamily: "Lato_700Bold"}}>{`22/08/2025`}</Text>
+                <Text style={{fontSize: 16, fontFamily: "Lato_700Bold"}}>{orcamento?.updatedAt}</Text>
               </View>
             </View>
 
@@ -70,9 +153,19 @@ export function DetalheOrcamento({route, navigation }: StackRoutesProps<"detalhe
             <MaterialIcons name="article" size={20} color={"#6A46EB"} />
             <Text style={{fontFamily: "Lato_400Bold", fontSize: 14}}>Serviços inclusos</Text>
           </View>
-          <ServicosInculos/>
-          <ServicosInculos/>
-          <ServicosInculos/>
+          {
+            orcamento ?  orcamento.servicos.map(item => (
+              <ServicosInculos
+                key={item.id}
+                id={item.id}
+                titulo={item.titulo}
+                decricao={item.descricao}
+                quantidade={item.quantidade}
+                valor={String(item.valor)}
+              />
+            )) :
+            <Text>Nenhum serviço aqui.</Text>
+          }
         </View>
 
         <View style={[styles.card, {flexDirection: "row", backgroundColor: "#FAFAFA",padding: 14, marginTop: 10}]}>
@@ -91,7 +184,12 @@ export function DetalheOrcamento({route, navigation }: StackRoutesProps<"detalhe
                 marginRight: 10,
                 color: "#4A4A4A"
               }}>
-                {`R$ 3.847,50`}
+                {
+                  new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(orcamento ? orcamento.servicos[0].valor : 0)
+                }
               </Text>
             </View>
 
@@ -106,7 +204,10 @@ export function DetalheOrcamento({route, navigation }: StackRoutesProps<"detalhe
                       color: "#30752F",
                       textAlign: "center"
                     }}>
-                      {`5% off`}
+                      
+                      {
+                        orcamento ? `${orcamento?.desconto}% off` : '0 % off'
+                      }
                     </Text>
                   </View>
                 </View>
@@ -118,8 +219,13 @@ export function DetalheOrcamento({route, navigation }: StackRoutesProps<"detalhe
                   color:"#30752F",
                   // marginLeft: 60
                 }}>
-                  <Text>-R$</Text>
-                  <Text>{` -200,00`}</Text>
+                  -
+                  {
+                    new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(orcamento ? orcamento?.valorDesconto : 0)
+                  }
                 </Text>
 
               </View>
@@ -127,8 +233,15 @@ export function DetalheOrcamento({route, navigation }: StackRoutesProps<"detalhe
               <View style={[styles.valorTotal]}>
                 <Text style={{fontSize: 16, fontWeight: 700}}>Investimento total</Text>
                 <View style={{flexDirection: "row", alignItems: "center"}}>
-                  <Text>R$</Text>
-                  <Text style={{fontSize: 20, fontWeight: 700}}>{` 3.847,50`}</Text>
+                  
+                  <Text style={{fontSize: 20, fontWeight: 700}}>
+                    {
+                    new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(orcamento ? orcamento?.valorTotal : 0)
+                  }
+                  </Text>
                 </View>
               </View>
               
@@ -138,11 +251,38 @@ export function DetalheOrcamento({route, navigation }: StackRoutesProps<"detalhe
           <View style={styles.bottons}>
             <View style={{flexDirection: "row", justifyContent: "space-between", width: "100%"}}>
               <View style={{flexDirection: "row", gap: 10}}>
-                <ButtonIcon name="delete-outline" width={45} height={45} size={20} color="#DB4D4D"/>
-                <ButtonIcon name="content-copy" width={45} height={45} size={20} color="#6A46EB"/>
-                <ButtonIcon name="border-color" width={45} height={45} size={20} color="#6A46EB"/>
+                <ButtonIcon 
+                  name="delete-outline"
+                  width={45}
+                  height={45}
+                  size={20} 
+                  color="#DB4D4D" 
+                  onPress={deleteOrcamento}
+                />
+                <ButtonIcon 
+                  name="content-copy" 
+                  width={45} 
+                  height={45} 
+                  size={20} 
+                  color="#6A46EB"
+                  onPress={duplicarOrcamento}
+                />
+                <ButtonIcon 
+                  name="border-color" 
+                  width={45} 
+                  height={45} 
+                  size={20} 
+                  color="#6A46EB"
+                  onPress={() => navigation.navigate("orcamento", {id: route.params.id})}
+                />
               </View>
-              <Button title="Compartilhar" name="send" color="#6A46EB" colorIcon="#FAFAFA" width={170}/>
+              <Button 
+                title="Compartilhar" 
+                name="send" 
+                color="#6A46EB" 
+                colorIcon="#FAFAFA" 
+                width={170}
+              />
             </View>
           </View>
       </ScrollView>

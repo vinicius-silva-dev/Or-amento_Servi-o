@@ -5,7 +5,7 @@ import { createNativeStackNavigator, NativeStackScreenProps } from "@react-navig
 
 export type StackRoutesList = {
   home: undefined
-  orcamento: undefined
+  orcamento: undefined | {id: string}
   detalheorcamento: {id: string}
 }
 

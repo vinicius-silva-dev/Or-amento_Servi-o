@@ -14,54 +14,97 @@ import { BottomModal } from "@/components/Modal";
 import { ButtonIcon } from "@/components/ButtonIcon";
 
 import {itemsStorage, Servico } from "@/storage/servicoStorage";
+import {orcamentoStorage } from "@/storage/orcamentoStorage";
 
 const statusOptions = ["Rascunho", "Aprovado", "Enviado", "Recusado"]
 
 
-export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
+export function Orcamento({route, navigation }: StackRoutesProps<"orcamento">) {
    
-
-  const [qtdServices, setQtdServices] = useState(1)
-  const [isChecked, setIsChecked] = useState(false);
-  const [isOpen, setisOpen] = useState(false)
+  const [isOpenServico, setIsOpenServico] = useState(false)
   const [isEdit, setIsEdit] = useState(false)
-
+  
   const [titulo, setTitulo] = useState("")
   const [cliente, setCliente] = useState("")
   const [status, setStatus] = useState("")
-  const [valor, setValor] = useState<Number>(0)
-
-  const [servicos, setServicos] = useState<Servico[]>()
+  const [subValor, setSubValor] = useState(0)
+  const [desconto, setDesconto] = useState(0)
+  const [valorDesconto, setvalorDesconto] = useState(0)
+  const [valor, setValor] = useState(0)
+  
+  const [servicos, setServicos] = useState<Servico[]>([])
   const [idServico, setIdServico] = useState("")
   const [tituloServico, setTituloServico] = useState("")
   const [descricaoServico, setDescricaoServico] = useState("")
   const [valorServico, setValorServico] = useState("")
+  const [qtdServices, setQtdServices] = useState(1)
 
-  async function handleServico() {
+  async function createOrcamento() {
+    if(!titulo.trim() && !cliente.trim()) {
+      return Alert.alert("Adicionar", "Informe o titulo a descrição do serviço.")
+    }
+
+    const today = new Date();
+    const formatter = new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    const formattedDate = formatter.format(today);
+    const newOrcamento = {
+      id: randomId(),
+      titulo,
+      cliente,
+      status: status,
+      servicos: servicos,
+      desconto,
+      valorDesconto,
+      valorTotal: subValor - valorDesconto,
+      createdAt: formattedDate,
+      updatedAt: formattedDate
+    }
+
+    await orcamentoStorage.add(newOrcamento)
+    
+
+    Alert.alert("Orcamento", `Orcamento adicionado com sucesso`)
+    navigation.navigate("home")
+    setTituloServico("")
+    setDescricaoServico("")
+    setValorServico("")
+    // clearServices()
+  }
+
+  async function createServico() {
     if(!tituloServico.trim() && !descricaoServico.trim()) {
       return Alert.alert("Adicionar", "Informe o titulo a descrição do serviço.")
     }
 
-    const newServico = {
+    const newServico: Servico = {
       id: randomId(),
       titulo: tituloServico,
       descricao: descricaoServico,
-      valor: Number(valorServico)
+      valor: Number(valorServico),
+      quantidade: qtdServices
     }
 
-    await itemsStorage.add(newServico)
+    setServicos(prev => [...prev, newServico])
     await getServicos()
 
     Alert.alert("Adicionado", `Serviço adicionado com sucesso`)
     setTituloServico("")
     setDescricaoServico("")
     setValorServico("")
+    setIsOpenServico(false)
   }
 
   async function getServicos() {
     try {
       const response = await itemsStorage.get()
-      setServicos(response.reverse())
+      if(response.length > 0) {
+        
+        setServicos(response.reverse())
+      }
     } catch (error) {
       console.log(error)
       Alert.alert("Erro", "Não foi possível filtrar os itens.")
@@ -71,8 +114,9 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
     try {
       setIsEdit(true)
       setIdServico(id)
-      const response = await itemsStorage.getById(id)
+      const response = servicos.find(item => item.id === id)
 
+      
       if(!response) {
         Alert.alert("Erro", "Serviço não encontrado")
       }
@@ -80,10 +124,28 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
       setTituloServico(response ? response?.titulo: "")
       setDescricaoServico(response ? response?.descricao: "")
       setValorServico(response ? String(response.valor) : "")
-      setisOpen(true)
+      setQtdServices(response?.quantidade ?? 1)
+      setIsOpenServico(true)
     } catch (error) {
       console.log(error)
       Alert.alert("Erro", "Não foi possível filtrar os itens.")
+    }
+  }
+  async function getOrcamentoById(id: string) {
+    try {
+      const response = await orcamentoStorage.getById(id) 
+
+      response.forEach(async (item) => {
+        setTitulo(item.titulo)
+        setCliente(item.cliente)
+        setStatus(item.status)
+        setServicos(item.servicos)
+
+
+      })
+    } catch (error) {
+      console.log(error)
+      Alert.alert("Erro", "Não foi possível carregaro o orçamento.")
     }
   }
 
@@ -99,33 +161,70 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
       }
     ])
   }
+
   async function removeService() {
     try {
       await itemsStorage.remove(idServico)
       await getServicos()
 
       Alert.alert("Delete", "Serviço removido com sucesso.")
-      setisOpen(false)
+      setIsOpenServico(false)
 
     } catch (error) {
       console.log(error)
       Alert.alert("Erro", "Não foi possível remover os itens.")
     }
   }
+  async function clearServices() {
+    try {
+      await itemsStorage.clear()
+      await getServicos()
+    } catch (error) {
+      console.log(error)
+      Alert.alert("Erro", "Não foi possível remover os itens.")
+    }
+  }
 
+  async function editOrcamento() {
+    const today = new Date();
+    const formatter = new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    const formattedDate = formatter.format(today);
+    const newOrcamento = {
+      id: route.params?.id ? route.params?.id : randomId() ,
+      titulo,
+      cliente,
+      status: status,
+      servicos: servicos,
+      desconto,
+      valorDesconto,
+      valorTotal: subValor - valorDesconto,
+      createdAt: formattedDate,
+      updatedAt: formattedDate
+    }
+    await orcamentoStorage.edit(newOrcamento)
+
+    Alert.alert("Editado", `Orcamento editado com sucesso.`)
+    navigation.navigate("home")
+  }
   async function editService() {
     try {
-      const newServico = {
+      const newServico: Servico = {
       id: idServico,
       titulo: tituloServico,
       descricao: descricaoServico,
-      valor: Number(valorServico)
+      valor: Number(valorServico),
+      quantidade: qtdServices
     }
-
-      await itemsStorage.edit(newServico)
-      await getServicos()
+      // Precisa remover o serviço antigo antes de add o novo
+      const removeServiceOld = servicos.filter(item => item.id !== idServico)
+      setServicos([...removeServiceOld, newServico])
+  
       Alert.alert("Editado", `Serviço editado com sucesso.`)
-      setisOpen(false)
+      setIsOpenServico(false)
       
     } catch (error) {
       console.log(error)
@@ -133,9 +232,25 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
     }
   }
 
+  function investimento() {
+    if(servicos) {
+      const soma = servicos?.reduce((acumulador, servico) => {
+        return acumulador + (servico.valor * servico.quantidade)
+      },0)
+  
+      setSubValor(soma)
+      const calculoDesconto = desconto / 100 * subValor
+      setvalorDesconto(calculoDesconto)
+    }
+  }
+
   useEffect(() => {
-    getServicos()
-  },[])
+    investimento()
+  },[servicos, desconto])
+
+  useEffect(() => {
+    route.params?.id && getOrcamentoById(route.params?.id)
+  },[route.params?.id])
  
   const [fontsLoaded] = useFonts({
     Lato_400Regular,
@@ -145,7 +260,7 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
   if (!fontsLoaded) {
     return <Text>Deu ruim</Text>;
   }
-
+  
   const randomId = function (length = 12) {
   return Math.random().toString(36).substring(2, length + 2);
 };
@@ -157,7 +272,10 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
       }}
     >
       <View style={styles.header}>
-        <MaterialIcons name="chevron-left" size={32} onPress={() => navigation.navigate("home")} />
+        <MaterialIcons name="chevron-left" size={32} onPress={() =>{
+           navigation.navigate("home")
+          //  clearServices()
+        }} />
         <Text style={styles.title}>Orçamento</Text>
       </View>
       <ScrollView 
@@ -194,7 +312,7 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
             flexDirection: "row",
             flexWrap: "wrap",
           }}>
-            {statusOptions.map(item => (
+            {statusOptions.map((item, index) => (
               <View
                 key={item}
                 style={{
@@ -206,9 +324,8 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
                 }}
               >
                 <CheckBox
-                  value={isChecked}
-                  onValueChange={setIsChecked}
-                  onChange={() => setStatus(item)}
+                  value={status === item}
+                  onValueChange={() => setStatus(item)}
                   tintColors={{ true: '#6A46EB', false: '#999' }}
                 />
                 <Status status={item} />
@@ -223,7 +340,7 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
             <Text style={styles.titleHeader}>Serviços inclusos</Text>
           </View>
           {
-            servicos ?
+            servicos.length > 0 ?
             servicos?.map(item => (
               <ServicosInculos 
                 key={item.id}
@@ -231,8 +348,8 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
                 isName
                 titulo={item.titulo}
                 decricao={item.descricao}
-                valor={String(item.valor)}
-                quantidade={1}
+                valor={String(item.valor * item.quantidade)}
+                quantidade={item.quantidade}
                 onOpenModal={() => getServicoById(item.id)}
               />
             )) : 
@@ -246,7 +363,14 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
               width={300}
               color="#FAFAFA"
               colorIcon="#6A46EB"
-              onPress={() => setisOpen(true)}
+              onPress={() => {
+                setIsEdit(false)
+                setTituloServico("")
+                setDescricaoServico("")
+                setValorServico("")
+                setQtdServices(1)
+                setIsOpenServico(true)
+              }}
             />
           </View>
         </View>
@@ -259,8 +383,20 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
           <View style={styles.subtotal}>
             <Text>Subtotal</Text>
             <Text >
-              <Text style={{fontSize: 12, textAlign: "right", color: "#4A4A4A"}}>{`8 itens  `}</Text>
-              <Text>{`R$ 3.847,50`}</Text>
+              <Text style={{fontSize: 12, textAlign: "right", color: "#4A4A4A"}}>
+                {
+                  servicos ? `${servicos?.length} itens ` : `${0} itens `
+                }
+              </Text>
+              <Text>
+                {
+                  new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(subValor)
+                  
+                }
+              </Text>
             </Text>
           </View>
 
@@ -270,7 +406,11 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
               <View style={styles.desconto}>
                 <TextInput
                   style={styles.inputDesconto}
-                  value="4"
+                  value={String(desconto)}
+                  onChangeText={(text) => {
+                    const num = Number(text)
+                    if (!isNaN(num)) setDesconto(num)
+                  }}
                 />
 
                 <MaterialIcons
@@ -282,18 +422,47 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
 
               </View>
               <Text style={{flexDirection: "row", color:"red", marginLeft: 120}}>
-                <Text>R$</Text>
-                <Text>{` -200,00`}</Text>
+                
+                <Text>
+                  -
+                  {
+                    new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                    }).format(valorDesconto)
+                  }
+                </Text>
               </Text>
             </View>
 
             <View style={styles.valorTotal}>
               <Text style={{fontSize: 14, fontWeight: 700}}>Valor Total</Text>
               <View>
-                <Text style={{fontSize: 12, textAlign: "right", color: "#4A4A4A", textDecorationLine: "line-through"}}>{`R$ 4.050,00`}</Text>
+                <Text 
+                  style={{
+                    fontSize: 12,
+                    textAlign: "right",
+                    color: "#4A4A4A",
+                    textDecorationLine: "line-through"
+                    }}
+                  >
+                    {
+                      new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
+                      }).format(subValor)
+                    }
+                  </Text>
                 <Text >
-                  <Text>R$</Text>
-                  <Text style={{fontSize: 18, fontWeight: 700}}>{` 3.847,50`}</Text>
+                  
+                  <Text style={{fontSize: 18, fontWeight: 700}}>
+                    {
+                      new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL'
+                      }).format(subValor - valorDesconto )
+                    }
+                  </Text>
                 </Text>
               </View>
             </View>
@@ -303,11 +472,18 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
           
         <View style={styles.submit}>
           <Button title="Cancelar" color="#FAFAFA" colorIcon="#6A46EB" width={120}/>
-          <Button title="Salvar" name="check" color="#6A46EB" colorIcon="#FAFAFA" width={120}/>
+          <Button 
+            title="Salvar"
+            name="check"
+            color="#6A46EB"
+            colorIcon="#FAFAFA"
+            width={120}
+            onPress={route.params?.id ? editOrcamento : createOrcamento}
+          />
         </View>
       </ScrollView>
 
-      <BottomModal visible={isOpen} onClose={() => setisOpen(false)} height={480}>
+      <BottomModal visible={isOpenServico} onClose={() => setIsOpenServico(false)} height={480}>
         <View style={styles.headerFiltro}>
           <Text style={{
             fontFamily: "Lato_700Bold",
@@ -317,7 +493,7 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
             Serviço
           </Text>
           
-          <MaterialIcons name="close" size={32} onPress={() => setisOpen(false)} />
+          <MaterialIcons name="close" size={32} onPress={() => setIsOpenServico(false)} />
         </View>
         <View style={{ padding: 15, flexDirection: "column", gap: 10 }}>
           <TextInput 
@@ -372,7 +548,11 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
                   paddingVertical: 10,
                   // backgroundColor: "#eee"
                 }}
-                onPress={() => setQtdServices((prev) => prev > 0 ? prev - 1 : 0)}
+                onPress={() =>{
+                   setQtdServices((prev) => prev > 0 ? prev - 1 : 0)
+                  //  const novoValor = qtdServices
+                  //  setValorServico((prev) => String( prev ))
+                }}
               >
                 <Text style={{fontSize: 30, textAlign: "center", color: "#6A46EB"}}>
                   -
@@ -393,7 +573,10 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
                 }}
               />
               <Pressable
-                onPress={() => setQtdServices((prev) => prev + 1)}
+                onPress={() => {
+                  setQtdServices((prev) => prev + 1)
+                  // setValorServico((prev) => String(+ prev * qtdServices))
+                }}
                 style={{
                   paddingHorizontal: 14,
                   paddingVertical: 10,
@@ -443,7 +626,7 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
                   color="#6A46EB"
                   colorIcon="#FAFAFA"
                   width={120}
-                  onPress={ handleServico}
+                  onPress={ createServico}
                 />
               )
             }
@@ -453,7 +636,7 @@ export function Orcamento({ navigation }: StackRoutesProps<"orcamento">) {
               color="#6A46EB"
               colorIcon="#FAFAFA"
               width={120}
-              onPress={ handleServico}
+              onPress={ createServico}
             /> */}
           </View>
         </View>

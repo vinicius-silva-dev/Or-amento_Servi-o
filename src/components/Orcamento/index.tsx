@@ -7,13 +7,14 @@ import { OrcamentoStatus } from "@/types/orcamentoStatus";
 
 export type OrcamenProps = TouchableOpacityProps & {
   id: string
-  title: string
-  client: string
+  titulo: string
+  cliente: string
   status: string
-  valor: string
+  valorDesconto: number
+  valorTotal: number
 }
 
-export function Orcamento({title, client, status, valor, ...rest}: OrcamenProps) {
+export function Orcamento({titulo, cliente, status, valorTotal, ...rest}: OrcamenProps) {
    const [fontsLoaded] = useFonts({
       Lato_400Regular,
       Lato_700Bold,
@@ -31,11 +32,11 @@ export function Orcamento({title, client, status, valor, ...rest}: OrcamenProps)
             fontSize: 16,
             fontWeight: 700,
             fontFamily: "Lato_700Bold",
-          }}>{title}</Text>
+          }}>{titulo}</Text>
           <Status status={status}/>
         </View>
         <View style={styles.clientValor}>
-          <Text style={{fontSize: 14, fontWeight: 400, color: "#4A4A4A",fontFamily: "Lato_400Bold",}}>{client}</Text>
+          <Text style={{fontSize: 14, fontWeight: 400, color: "#4A4A4A",fontFamily: "Lato_400Bold",}}>{cliente}</Text>
           <Text style={{
             fontSize: 12,
             fontWeight: 400,
@@ -43,7 +44,14 @@ export function Orcamento({title, client, status, valor, ...rest}: OrcamenProps)
             fontFamily: "Lato_400Bold"
             }}
           >
-            {"R$"} <Text style={{fontSize: 16, fontWeight: 700,fontFamily: "Lato_700Bold", color: "#0F0F0F"}}>{valor}</Text>
+            <Text style={{fontSize: 16, fontWeight: 700,fontFamily: "Lato_700Bold", color: "#0F0F0F"}}>
+              {
+                  new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                  }).format(valorTotal)
+              }
+            </Text>
           </Text>
         </View>
       </View>

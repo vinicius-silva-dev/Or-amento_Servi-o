@@ -7,7 +7,7 @@ export const styles = StyleSheet.create({
   },
   servico: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
     alignItems: "center",
     padding: 20,
     // borderWidth: 2,

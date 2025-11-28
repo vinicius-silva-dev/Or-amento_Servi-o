@@ -7,13 +7,14 @@ import { Search } from "@/components/search";
 import { Status } from "@/components/Status";
 
 import { StackRoutesProps } from "@/routes/StackRoutes";
+import {orcamentoStorage } from "@/storage/orcamentoStorage";
 
 import { useFonts, Lato_400Regular, Lato_700Bold } from "@expo-google-fonts/lato";
 import { MaterialIcons } from "@expo/vector-icons";
 import CheckBox from "@react-native-community/checkbox";
 
-import {useState } from "react";
-import { FlatList, StyleSheet, Text, View, ScrollView } from "react-native";
+import {useEffect, useState } from "react";
+import { FlatList, StyleSheet, Text, View, ScrollView, Alert } from "react-native";
 
 const Item = [
   // {
@@ -46,13 +47,36 @@ const Item = [
   // },
 ]
 
-const status = ["Rascunho", "Aprovado", "Enviado", "Recusado"]
-const ordenacao = ["Mais recente", "Mais antigo", "Maior valor", "Menor valor"]
+const statusOptions = ["Rascunho", "Aprovado", "Enviado", "Recusado"]
+const ordenacaoOptions = ["Mais recente", "Mais antigo", "Maior valor", "Menor valor"]
 
 export function Home({navigation}: StackRoutesProps<"home">) {
   const [orcamento, setOrcamento] = useState<OrcamenProps[]>()
-  const [isChecked, setIsChecked] = useState(false);
+  const [status, setStatus] = useState("");
+  const [ordenacao, setOrdenacao] = useState("");
   const [isOpen, setisOpen] = useState(false)
+  
+  async function getOrcamentos() {
+      try {
+        const response = await orcamentoStorage.get()
+        if(response.length > 0) {
+          setOrcamento(response.reverse())
+        }
+        
+      } catch (error) {
+        console.log(error)
+        Alert.alert("Erro", "Não foi possível filtrar os itens.")
+      }
+  }
+
+  async function getOrcamentoByStatus(status: string) {}
+  useEffect(() => {
+    getOrcamentos()
+  },[])
+  // const items = 1
+  function showModal() {
+    setisOpen(true)
+  }
   const [fontsLoaded] = useFonts({
     Lato_400Regular,
     Lato_700Bold,
@@ -61,17 +85,13 @@ export function Home({navigation}: StackRoutesProps<"home">) {
   if(!fontsLoaded) {
     return <Text>Deu ruim</Text>
   }
-  const items = 1
-  function showModal() {
-    setisOpen(true)
-  }
   
   return (
     <View style={{flex: 1,  paddingTop: 54, backgroundColor: "#FFFFFF"}}>
       <Header>
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Orçamento</Text>
-          <Text style={styles.subTitle}>{`Você tem ${items} items em rascunho`}</Text>
+          <Text style={styles.subTitle}>{`Você tem ${orcamento?.length} items em rascunho`}</Text>
         </View>
         <Button 
           name="add" 
@@ -91,10 +111,11 @@ export function Home({navigation}: StackRoutesProps<"home">) {
           renderItem={({item}) => (
             <Orcamento
               id={item.id}
-              title={item.title}
-              client={item.client}
+              titulo={item.titulo}
+              cliente={item.cliente}
               status={item.status}
-              valor={`${item.valor}`}
+              valorDesconto={item.valorDesconto}
+              valorTotal={item.valorTotal}
               onPress={() => navigation.navigate("detalheorcamento", {id: item.id})}
             />
           )}
@@ -112,12 +133,20 @@ export function Home({navigation}: StackRoutesProps<"home">) {
           }}>
             Filtrar e ordenar
           </Text>
-          <MaterialIcons name="close" size={32} onPress={() => setisOpen(false)} />
+          <MaterialIcons 
+            name="close"
+            size={32} 
+            onPress={() => {
+              setisOpen(false)
+              setStatus("")
+              setOrdenacao("")
+            }} 
+          />
         </View>
 
         <View>
           <Text style={{fontFamily: "Lato_700Regular", fontSize: 14,paddingLeft: 12, color:"#676767"}}>Status</Text>
-          {status.map(item => (
+          {statusOptions.map(item => (
             <View
               key={item}
               style={{
@@ -129,8 +158,8 @@ export function Home({navigation}: StackRoutesProps<"home">) {
               }}
             >
               <CheckBox
-                value={isChecked}
-                onValueChange={setIsChecked}
+                value={status === item}
+                onValueChange={() => setStatus(item)}
                 tintColors={{ true: '#6A46EB', false: '#999' }}
               />
               <Status status={item} />
@@ -140,7 +169,7 @@ export function Home({navigation}: StackRoutesProps<"home">) {
 
         <View style={{marginTop: 10}}>
           <Text style={{fontFamily: "Lato_700Regular", fontSize: 14,paddingLeft: 12, color:"#676767"}}>Ordenação</Text>
-          {ordenacao.map(item => (
+          {ordenacaoOptions.map(item => (
             <View
               key={item}
               style={{
@@ -153,8 +182,8 @@ export function Home({navigation}: StackRoutesProps<"home">) {
               }}
             >
               <CheckBox
-                value={isChecked}
-                onValueChange={setIsChecked}
+                value={ordenacao === item}
+                onValueChange={() => setOrdenacao(item)}
                 tintColors={{ true: '#6A46EB', false: '#999' }}
               />
               <Text style={{fontSize: 14, fontFamily: "Lato_700Regular", fontWeight: 700, color: "#4A4A4A"}}>{item}</Text>
@@ -162,7 +191,16 @@ export function Home({navigation}: StackRoutesProps<"home">) {
           ))}
         </View>
         <View style={styles.submit}>
-          <Button title="Resetar Filtros" color="#FAFAFA" colorIcon="#6A46EB" width={150}/>
+          <Button 
+            title="Resetar Filtros"
+            color="#FAFAFA"
+            colorIcon="#6A46EB"
+            width={150}
+            onPress={() => {
+              setStatus("")
+              setOrdenacao("")
+            }}
+          />
           <Button title="Aplicar" name="check" color="#6A46EB" colorIcon="#FAFAFA" width={120}/>
         </View>
       </ScrollView>

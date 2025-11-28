@@ -9,8 +9,12 @@ export type Orcamento = {
   titulo: string
   cliente: string
   status: string
-  servicosId: string[]
+  servicos: Servico[]
+  desconto: number
+  valorDesconto: number
   valorTotal: number
+  createdAt: string
+  updatedAt: string
 }
 
 async function get(): Promise<Orcamento[]> {
@@ -24,9 +28,17 @@ async function get(): Promise<Orcamento[]> {
 }
 
 async function getById(id: string): Promise<Orcamento[]> {
-  const orcamentos = await get()
+  try {
+    const orcamentos = await get()
+    const orcamento = orcamentos.filter(item => item.id === id)
+    
+    return orcamento
+  
+    
+  } catch (error) {
+    throw new Error("ITEMS_GET: " + error)
+  }
 
-  return orcamentos.filter(item => item.id === id)
 
 }
 
@@ -59,10 +71,35 @@ async function add(newOrcamento: Orcamento): Promise<Orcamento[]> {
   
 }
 
-export const itemsStorage = {
+async function edit(newOrcamento: Orcamento): Promise<void> {
+  try {
+    const orcamento = await get()
+
+    const removeOrcamentoOld = orcamento.filter(item => item.id !== newOrcamento.id)
+
+    await save([...removeOrcamentoOld, newOrcamento])
+  } catch (error) {
+    throw new Error("ITEMS_EDIT: " + error)
+  }
+}
+
+async function remove(id: string): Promise<void> {
+  try {
+    const orcamentos = await get()
+    const orcamentoRemovido = orcamentos.filter(item => item.id !== id)
+    await save(orcamentoRemovido)
+    
+  } catch (error) {
+    throw new Error("ITEMS_CLEAR" + error)
+  }
+}
+
+export const orcamentoStorage = {
   get,
   getById,
   getByStatus,
   add,
-  save
+  save,
+  edit,
+  remove
 }

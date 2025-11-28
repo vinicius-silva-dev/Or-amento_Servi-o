@@ -7,6 +7,7 @@ export type Servico = {
   titulo: string
   descricao: string
   valor: number
+  quantidade: number
 }
 
 async function get(): Promise<Servico[]> {
