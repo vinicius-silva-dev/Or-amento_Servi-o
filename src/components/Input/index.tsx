@@ -4,6 +4,7 @@ import { styles } from "./styles";
 
 type Props = TextInputProps & {
   name?: undefined | keyof typeof MaterialIcons.glyphMap
+  buscar: () => void
 }
 
 export function Input({name,...rest}: Props) {

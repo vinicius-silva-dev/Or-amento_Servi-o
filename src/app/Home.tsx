@@ -54,6 +54,8 @@ export function Home({navigation}: StackRoutesProps<"home">) {
   const [orcamento, setOrcamento] = useState<OrcamenProps[]>()
   const [status, setStatus] = useState("");
   const [ordenacao, setOrdenacao] = useState("");
+  const [tituloOrcamento, setTituloOrcamento] = useState("");
+  const [clienteOrcamento, setClienteOrcamento] = useState("");
   const [isOpen, setisOpen] = useState(false)
   
   async function getOrcamentos() {
@@ -69,14 +71,55 @@ export function Home({navigation}: StackRoutesProps<"home">) {
       }
   }
 
-  async function getOrcamentoByStatus(status: string) {}
+  async function filtro() {
+    if(status) {
+      const orcamentoByStatus = await orcamentoStorage.getByStatus(status)
+      setOrcamento(orcamentoByStatus)
+    } else if(ordenacao === "Mais antigo") {
+      orcamento?.reverse()
+    }
+
+    if (ordenacao === "Maior valor" && status) {
+      const orcamentoByStatus = await orcamentoStorage.getByStatus(status)
+      const orcamentoMaiorValor = orcamentoByStatus?.sort((a,b) => b.valorTotal - a.valorTotal)
+      setOrcamento(orcamentoMaiorValor)
+    } else if (ordenacao === "Maior valor" && !status) {
+      const orcamentoMaiorValor = orcamento?.sort((a,b) => b.valorTotal - a.valorTotal)
+      setOrcamento(orcamentoMaiorValor)
+    } else if (ordenacao === "Menor valor" && status) {
+      const orcamentoByStatus = await orcamentoStorage.getByStatus(status)
+      const orcamentoMaiorValor = orcamentoByStatus?.sort((a,b) => a.valorTotal - b.valorTotal)
+      setOrcamento(orcamentoMaiorValor)
+    } else if(ordenacao === "Menor valor" && !status) {
+      const orcamentoMaiorValor = orcamento?.sort((a,b) => a.valorTotal - b.valorTotal)
+      setOrcamento(orcamentoMaiorValor)
+    }
+
+    if(status === "" && ordenacao === "") {
+      getOrcamentos()
+    }
+    setisOpen(false)
+  }
+
   useEffect(() => {
     getOrcamentos()
   },[])
-  // const items = 1
+  
   function showModal() {
     setisOpen(true)
   }
+
+  async function searchOrcamento() {
+    if(!tituloOrcamento.trim() && !clienteOrcamento.trim() ) {
+      getOrcamentos()
+    }
+    const orcamentoSearch =  orcamento?.filter(item => item.titulo.includes(tituloOrcamento)) 
+    setOrcamento(orcamentoSearch)
+  }
+
+  useEffect(() => {
+    searchOrcamento()
+  },[tituloOrcamento])
   const [fontsLoaded] = useFonts({
     Lato_400Regular,
     Lato_700Bold,
@@ -102,7 +145,12 @@ export function Home({navigation}: StackRoutesProps<"home">) {
           onPress={() => navigation.navigate("orcamento")}
         />
       </Header>
-      <Search showModal={showModal}/>
+      <Search 
+        showModal={showModal} 
+        buscar={searchOrcamento}
+        value={tituloOrcamento}
+        onChangeText={setTituloOrcamento}
+      />
     
       <View>
         <FlatList
@@ -122,7 +170,7 @@ export function Home({navigation}: StackRoutesProps<"home">) {
           ListEmptyComponent={() => <Text style={styles.empaty}>Nenhum item aqui.</Text>}
         />
       </View>
-     <BottomModal visible={isOpen} onClose={() => setisOpen(false)} height={600} >
+     <BottomModal visible={isOpen} onClose={() => setisOpen(false) } height={600} >
       <ScrollView>
 
         <View style={styles.headerFiltro}>
@@ -199,9 +247,17 @@ export function Home({navigation}: StackRoutesProps<"home">) {
             onPress={() => {
               setStatus("")
               setOrdenacao("")
+              
             }}
           />
-          <Button title="Aplicar" name="check" color="#6A46EB" colorIcon="#FAFAFA" width={120}/>
+          <Button 
+            title="Aplicar"
+            name="check"
+            color="#6A46EB" 
+            colorIcon="#FAFAFA" 
+            width={120}
+            onPress={filtro}
+          />
         </View>
       </ScrollView>
     </BottomModal>
